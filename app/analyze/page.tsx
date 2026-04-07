@@ -323,7 +323,7 @@ function AnalyzeContent() {
               </p>
             </div>
 
-            {/* Active strategy badge — top right */}
+            {/* Active strategy badge - top right */}
             <AnimatePresence>
               {strategy && analysis && (
                 <motion.div

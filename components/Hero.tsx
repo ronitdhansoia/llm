@@ -130,7 +130,7 @@ export function Hero() {
           transition={{ delay: 2, duration: 1 }}
           className="mt-10 sm:mt-16 text-[9px] sm:text-[10px] tracking-wider uppercase text-white/15"
         >
-          Educational tool — not financial advice
+          Educational tool - not financial advice
         </motion.p>
       </div>
 

@@ -171,7 +171,7 @@ export function MonteCarloChart({ result }: MonteCarloChartProps) {
         />
       </div>
 
-      {/* Fan chart — percentile bands */}
+      {/* Fan chart - percentile bands */}
       <motion.div
         variants={item}
         className="bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4"

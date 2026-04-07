@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CryptoLens — AI-Powered Crypto Chart Analyzer",
+  title: "CryptoLens - AI-Powered Crypto Chart Analyzer",
   description:
     "Decode the crypto market with AI. Visualize technical indicators and get plain-English analysis.",
 };

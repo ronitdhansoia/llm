@@ -20,7 +20,7 @@ const steps = [
     icon: BrainCircuit,
     title: "Get AI insights",
     description:
-      "AI reads every indicator and tells you what the signals mean — in plain English.",
+      "AI reads every indicator and tells you what the signals mean - in plain English.",
   },
 ];
 

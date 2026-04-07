@@ -189,7 +189,7 @@ export function Terminal() {
             };
 
             addLine("output", "");
-            addLine("heading", `  ${resolved.toUpperCase()} — Technical Indicators (30D)`);
+            addLine("heading", `  ${resolved.toUpperCase()} - Technical Indicators (30D)`);
             addLine("output", "");
             addLine("output", `  RSI (14):        ${last(ind.rsi).toFixed(2)}`);
             addLine("output", `  SMA 20:          $${last(ind.sma20).toFixed(2)}`);
@@ -268,7 +268,7 @@ export function Terminal() {
             const analysis = await analyzeRes.json();
 
             addLine("output", "");
-            addLine("heading", `  ${resolved.toUpperCase()} — AI Analysis`);
+            addLine("heading", `  ${resolved.toUpperCase()} - AI Analysis`);
             addLine("output", "");
             addLine("output", `  Trend:        ${analysis.trend} (${analysis.confidence} confidence)`);
             addLine("output", `  ${analysis.trendExplanation}`);
@@ -356,7 +356,7 @@ export function Terminal() {
             const m = result.metrics;
 
             addLine("output", "");
-            addLine("heading", `  ${resolved.toUpperCase()} — Backtest Results`);
+            addLine("heading", `  ${resolved.toUpperCase()} - Backtest Results`);
             addLine("output", `  Strategy:     ${strategy.name}`);
             addLine("output", "");
             addLine("output", `  Total Return: ${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn.toFixed(1)}%`);
@@ -386,7 +386,7 @@ export function Terminal() {
               addLine("output", "");
             }
 
-            addLine("system", "  Educational only — not financial advice.");
+            addLine("system", "  Educational only - not financial advice.");
             addLine("output", "");
             break;
           }
@@ -394,13 +394,203 @@ export function Terminal() {
           default: {
             if (command.includes("cryptolens") || command.includes("./") || command.includes(".sh")) {
               addLine("system", "You're already inside the CryptoLens terminal.");
-              addLine("system", 'Type a command directly — e.g. "price bitcoin" or "analyze ethereum"');
+              addLine("system", 'Type a command directly - e.g. "price bitcoin" or "analyze ethereum"');
               addLine("system", 'Type "help" to see all available commands.');
               break;
             }
 
-            // ── Free-form AI chat ──
-            // Detect if any coin is mentioned in the full input
+            // ── Detect intent from natural language ──
+            const intentCoin = detectCoin(trimmed);
+            const backtestIntent = /backtest|back test|back-test|test.*strategy|run.*strategy|simulate/i.test(trimmed);
+            const analyzeIntent = /analy[sz]e|analysis|what.*think|outlook|forecast|predict/i.test(trimmed) && !backtestIntent;
+            const priceIntent = /price|how much|what.*worth|cost|value|trading at/i.test(trimmed) && !analyzeIntent && !backtestIntent;
+
+            // Route to the actual command if intent is detected
+            if (backtestIntent && intentCoin) {
+              // Extract strategy description - remove the coin name and backtest keywords
+              const strategyText = trimmed
+                .replace(/can you |please |could you |run |do |perform /gi, "")
+                .replace(/backtest|back test|back-test|simulate|test/gi, "")
+                .replace(new RegExp(intentCoin, "gi"), "")
+                .replace(/on|for|a|the|an|my/gi, "")
+                .replace(/strategy/gi, "strategy")
+                .replace(/\s+/g, " ")
+                .trim() || "balanced swing trading using RSI and MACD";
+
+              // Reuse the backtest command logic
+              addLine("system", `Fetching 90D data for ${intentCoin}...`);
+
+              const mktRes = await fetch(`/api/market-data?coin=${intentCoin}&days=90`);
+              if (!mktRes.ok) throw new Error("Failed to fetch data");
+              const mktData = await mktRes.json();
+
+              const ind2 = mktData.indicators;
+              const last2 = (arr: number[]) => {
+                for (let i = arr.length - 1; i >= 0; i--) {
+                  if (arr[i] != null) return arr[i];
+                }
+                return 0;
+              };
+
+              addLine("system", `Generating strategy: "${strategyText}"...`);
+
+              const sRes = await fetch("/api/generate-strategy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  coin: intentCoin,
+                  timeframe: "90 days",
+                  currentPrice: mktData.metadata.lastPrice,
+                  strategy: strategyText,
+                  indicators: {
+                    rsiLatest: last2(ind2.rsi),
+                    sma20Latest: last2(ind2.sma20),
+                    sma50Latest: last2(ind2.sma50),
+                    ema12Latest: last2(ind2.ema12),
+                    ema26Latest: last2(ind2.ema26),
+                    macdLatest: last2(ind2.macd.macd),
+                    macdSignalLatest: last2(ind2.macd.signal),
+                    macdHistogramLatest: last2(ind2.macd.histogram),
+                    bollingerUpper: last2(ind2.bollingerBands.upper),
+                    bollingerMiddle: last2(ind2.bollingerBands.middle),
+                    bollingerLower: last2(ind2.bollingerBands.lower),
+                  },
+                }),
+              });
+
+              if (!sRes.ok) throw new Error("Strategy generation failed");
+              const strat = await sRes.json();
+
+              addLine("system", "Running backtest...");
+
+              const { runBacktest: runBt } = await import("@/lib/backtest");
+              const btResult = runBt({
+                strategy: strat,
+                prices: mktData.prices,
+                indicators: mktData.indicators,
+              });
+
+              const bm = btResult.metrics;
+
+              addLine("output", "");
+              addLine("heading", `  ${intentCoin.toUpperCase()} - Backtest Results`);
+              addLine("output", `  Strategy:     ${strat.name}`);
+              addLine("output", "");
+              addLine("output", `  Total Return: ${bm.totalReturn >= 0 ? "+" : ""}${bm.totalReturn.toFixed(1)}%`);
+              addLine("output", `  Win Rate:     ${bm.winRate.toFixed(0)}%`);
+              addLine("output", `  Total Trades: ${bm.totalTrades}`);
+              addLine("output", `  Max Drawdown: -${bm.maxDrawdown.toFixed(1)}%`);
+              addLine("output", `  Sharpe Ratio: ${bm.sharpeRatio.toFixed(2)}`);
+              addLine("output", `  Profit Factor:${bm.profitFactor === Infinity ? " ∞" : " " + bm.profitFactor.toFixed(2)}`);
+              addLine("output", `  Best Trade:   +${bm.bestTrade.toFixed(1)}%`);
+              addLine("output", `  Worst Trade:  ${bm.worstTrade.toFixed(1)}%`);
+              addLine("output", "");
+
+              if (btResult.trades.length > 0) {
+                addLine("heading", "  Trade Log:");
+                addLine("output", `  ${"#".padEnd(4)} ${"Entry".padEnd(12)} ${"Exit".padEnd(12)} ${"Return".padEnd(10)} Reason`);
+                addLine("output", `  ${"─".repeat(60)}`);
+                for (let i = 0; i < Math.min(btResult.trades.length, 10); i++) {
+                  const t = btResult.trades[i];
+                  const eD = new Date(t.entryTime).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  const xD = new Date(t.exitTime).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  const r = `${t.returnPercent >= 0 ? "+" : ""}${t.returnPercent.toFixed(1)}%`;
+                  addLine("output", `  ${String(i + 1).padEnd(4)} ${eD.padEnd(12)} ${xD.padEnd(12)} ${r.padEnd(10)} ${t.exitReason}`);
+                }
+                if (btResult.trades.length > 10) {
+                  addLine("system", `  ... and ${btResult.trades.length - 10} more trades`);
+                }
+                addLine("output", "");
+              }
+
+              addLine("system", "  Educational only - not financial advice.");
+              addLine("output", "");
+              break;
+            }
+
+            if (analyzeIntent && intentCoin) {
+              // Redirect to the analyze command
+              addLine("system", `Running analysis on ${intentCoin}...`);
+
+              const amRes = await fetch(`/api/market-data?coin=${intentCoin}&days=30`);
+              if (!amRes.ok) throw new Error("Failed to fetch data");
+              const amData = await amRes.json();
+              const aInd = amData.indicators;
+              const aLast = (arr: number[]) => {
+                for (let i = arr.length - 1; i >= 0; i--) {
+                  if (arr[i] != null) return arr[i];
+                }
+                return 0;
+              };
+
+              const aPrices = amData.prices;
+              const aRecent = aPrices.slice(-5)
+                .map((p: { value: number }) => `$${p.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`)
+                .join(" → ");
+
+              const aRes = await fetch("/api/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  coin: intentCoin,
+                  timeframe: "30 days",
+                  currentPrice: amData.metadata.lastPrice,
+                  indicators: {
+                    rsiLatest: aLast(aInd.rsi),
+                    sma20Latest: aLast(aInd.sma20),
+                    sma50Latest: aLast(aInd.sma50),
+                    ema12Latest: aLast(aInd.ema12),
+                    ema26Latest: aLast(aInd.ema26),
+                    macdLatest: aLast(aInd.macd.macd),
+                    macdSignalLatest: aLast(aInd.macd.signal),
+                    macdHistogramLatest: aLast(aInd.macd.histogram),
+                    bollingerUpper: aLast(aInd.bollingerBands.upper),
+                    bollingerMiddle: aLast(aInd.bollingerBands.middle),
+                    bollingerLower: aLast(aInd.bollingerBands.lower),
+                  },
+                  recentPriceAction: `Last 5 data points: ${aRecent}`,
+                  strategy: trimmed,
+                }),
+              });
+
+              if (!aRes.ok) throw new Error("Analysis failed");
+              const aResult = await aRes.json();
+
+              addLine("output", "");
+              addLine("heading", `  ${intentCoin.toUpperCase()} - AI Analysis`);
+              addLine("output", "");
+              addLine("output", `  Trend:        ${aResult.trend} (${aResult.confidence} confidence)`);
+              addLine("output", `  ${aResult.trendExplanation}`);
+              addLine("output", "");
+              addLine("output", `  Momentum:     ${aResult.momentum}`);
+              addLine("output", "");
+              addLine("output", `  Support:      $${aResult.keyLevels.support.toLocaleString()}`);
+              addLine("output", `  Resistance:   $${aResult.keyLevels.resistance.toLocaleString()}`);
+              addLine("output", `  ${aResult.keyLevels.explanation}`);
+              addLine("output", "");
+              addLine("output", `  Summary:      ${aResult.signalSummary}`);
+              addLine("output", "");
+              addLine("system", `  ${aResult.disclaimer}`);
+              addLine("output", "");
+              break;
+            }
+
+            if (priceIntent && intentCoin) {
+              addLine("system", `Fetching ${intentCoin} price...`);
+              const pRes = await fetch(`/api/market-data?coin=${intentCoin}&days=1`);
+              if (!pRes.ok) throw new Error("Failed to fetch");
+              const pData = await pRes.json();
+              const pp = pData.metadata.lastPrice;
+              const pc = pData.metadata.change24h;
+              addLine("output", "");
+              addLine("heading", `  ${intentCoin.toUpperCase()}`);
+              addLine("output", `  Price:    $${pp.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+              addLine("output", `  24h:      ${pc >= 0 ? "▲ +" : "▼ "}${pc.toFixed(2)}%`);
+              addLine("output", "");
+              break;
+            }
+
+            // ── Free-form AI chat (fallback) ──
             const detectedCoin = detectCoin(trimmed);
             let coinData = null;
 
@@ -524,21 +714,16 @@ export function Terminal() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-4xl mx-auto"
-    >
-      <div className="rounded-xl sm:rounded-2xl border border-white/[0.06] overflow-hidden bg-[#0a0a0a]">
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="rounded-lg sm:rounded-xl border border-white/[0.06] overflow-hidden bg-[#161618]">
         {/* Title bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.04]">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-white/[0.06]" />
-            <div className="w-3 h-3 rounded-full bg-white/[0.06]" />
-            <div className="w-3 h-3 rounded-full bg-white/[0.06]" />
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.04]">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-white/[0.12]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/[0.12]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/[0.12]" />
           </div>
-          <span className="text-[10px] text-white/15 font-mono tracking-wider">
+          <span className="text-[10px] text-white/15 font-mono">
             cryptolens
           </span>
           <button
@@ -546,9 +731,9 @@ export function Terminal() {
               setLines([]);
               addLines("system", WELCOME);
             }}
-            className="text-white/15 hover:text-white/30 transition-colors"
+            className="text-white/10 hover:text-white/25 transition-colors"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className="w-3 h-3" />
           </button>
         </div>
 
@@ -556,7 +741,8 @@ export function Terminal() {
         <div
           ref={scrollRef}
           onClick={() => inputRef.current?.focus()}
-          className="h-[400px] sm:h-[500px] overflow-y-auto p-4 sm:p-5 font-mono text-xs sm:text-[13px] leading-relaxed cursor-text select-text"
+          className="h-[400px] sm:h-[500px] overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 cursor-text select-text"
+          style={{ fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Menlo, Monaco, 'Courier New', monospace", fontSize: "13px", lineHeight: "1.75" }}
         >
           {/* Output lines */}
           {lines.map((line) => (
@@ -564,14 +750,14 @@ export function Terminal() {
               key={line.id}
               className={
                 line.type === "input"
-                  ? "text-white/70"
+                  ? "text-[#e0e0e0]"
                   : line.type === "error"
-                  ? "text-red-400/70"
+                  ? "text-[#e06c75]"
                   : line.type === "heading"
-                  ? "text-white/80 font-medium"
+                  ? "text-[#c8c8c8] font-medium"
                   : line.type === "system"
-                  ? "text-white/25"
-                  : "text-white/40"
+                  ? "text-[#5c6370]"
+                  : "text-[#8b8b8b]"
               }
             >
               <pre className="whitespace-pre-wrap break-words">{line.text || "\u00A0"}</pre>
@@ -580,7 +766,7 @@ export function Terminal() {
 
           {/* Input line */}
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-white/30 select-none">$</span>
+            <span className="text-[#98c379] select-none">$</span>
             <input
               ref={inputRef}
               type="text"
@@ -588,7 +774,8 @@ export function Terminal() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={processing}
-              className="flex-1 bg-transparent text-white/70 outline-none caret-white/50 disabled:opacity-30"
+              className="flex-1 bg-transparent text-[#e0e0e0] outline-none disabled:opacity-30"
+              style={{ caretColor: "#abb2bf", fontFamily: "inherit", fontSize: "inherit" }}
               autoFocus
               spellCheck={false}
               autoComplete="off"
@@ -596,13 +783,13 @@ export function Terminal() {
               autoCapitalize="off"
             />
             {processing && (
-              <span className="text-white/20 animate-pulse text-[10px]">
+              <span className="text-[#5c6370] animate-pulse" style={{ fontSize: "11px" }}>
                 processing...
               </span>
             )}
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

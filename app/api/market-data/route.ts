@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { prices, change24h, lastPrice } = priceResult;
 
     // For very short timeframes (1-3 days), we may have fewer data points
-    // Indicators need at least 50 points — skip them if not enough
+    // Indicators need at least 50 points - skip them if not enough
     const hasEnoughForIndicators = prices.length >= 50;
 
     const indicators = hasEnoughForIndicators

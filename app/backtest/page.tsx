@@ -160,12 +160,12 @@ function BacktestContent() {
           <p className="text-white/30 mt-2 text-sm font-light">
             {strategyPrompt ? (
               <>
-                Strategy: &quot;{strategyPrompt}&quot; —{" "}
+                Strategy: &quot;{strategyPrompt}&quot; -{" "}
                 {coin.charAt(0).toUpperCase() + coin.slice(1)}, {days} days
               </>
             ) : (
               <>
-                {coin.charAt(0).toUpperCase() + coin.slice(1)} — {days} day
+                {coin.charAt(0).toUpperCase() + coin.slice(1)} - {days} day
                 backtest
               </>
             )}

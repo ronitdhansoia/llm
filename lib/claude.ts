@@ -12,7 +12,7 @@ export async function analyzeWithClaude(
   request: AnalysisRequest
 ): Promise<AnalysisResponse> {
   const strategyContext = request.strategy
-    ? `\n\nThe user has a specific strategy or question: "${request.strategy}"\nTailor your analysis to address this. Incorporate it into your trendExplanation, momentum, and signalSummary fields — evaluate the indicators through the lens of this strategy.`
+    ? `\n\nThe user has a specific strategy or question: "${request.strategy}"\nTailor your analysis to address this. Incorporate it into your trendExplanation, momentum, and signalSummary fields - evaluate the indicators through the lens of this strategy.`
     : "";
 
   const systemPrompt = `You are a crypto technical analyst educator. Given the following technical indicator data for ${request.coin} over the last ${request.timeframe}, provide a structured educational analysis.${strategyContext}
