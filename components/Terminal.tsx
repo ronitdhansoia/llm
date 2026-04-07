@@ -67,6 +67,13 @@ export function Terminal() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
 
+  // Context memory - persists across commands
+  const ctx = useRef<{
+    coin: string | null;
+    strategy: string | null;
+    days: number;
+  }>({ coin: null, strategy: null, days: 30 });
+
   const nextId = () => ++idRef.current;
 
   const addLine = useCallback(
@@ -135,17 +142,19 @@ export function Terminal() {
             break;
           }
 
-          case "price": {
+          case "price":
+          case "fetch":
+          case "get":
+          case "check":
+          case "lookup":
+          case "show": {
             const coin = args[0];
-            if (!coin) {
+            const resolved = coin ? resolveCoin(coin) : ctx.current.coin;
+            if (!resolved) {
               addLine("error", 'Usage: price <coin>  (e.g. "price bitcoin")');
               break;
             }
-            const resolved = resolveCoin(coin);
-            if (!resolved) {
-              addLine("error", `Unknown coin: ${coin}. Type "coins" to see supported list.`);
-              break;
-            }
+            ctx.current.coin = resolved;
 
             addLine("system", `Fetching ${resolved}...`);
 
@@ -167,19 +176,19 @@ export function Terminal() {
             break;
           }
 
-          case "indicators": {
+          case "indicators":
+          case "ind":
+          case "ta": {
             const coin = args[0];
-            if (!coin) {
+            const resolved = coin ? resolveCoin(coin) : ctx.current.coin;
+            if (!resolved) {
               addLine("error", 'Usage: indicators <coin>');
               break;
             }
-            const resolved = resolveCoin(coin);
-            if (!resolved) {
-              addLine("error", `Unknown coin: ${coin}`);
-              break;
-            }
+            ctx.current.coin = resolved;
 
-            const indDays = detectTimeframe(trimmed) || 30;
+            const indDays = detectTimeframe(trimmed) || ctx.current.days;
+            ctx.current.days = indDays;
             addLine("system", `Computing indicators for ${resolved} (${indDays}D)...`);
 
             const res = await fetch(`/api/market-data?coin=${resolved}&days=${indDays}`);
@@ -210,19 +219,19 @@ export function Terminal() {
             break;
           }
 
-          case "analyze": {
+          case "analyze":
+          case "analyse":
+          case "analysis": {
             const coin = args[0];
-            if (!coin) {
+            const resolved = coin ? resolveCoin(coin) : ctx.current.coin;
+            if (!resolved) {
               addLine("error", 'Usage: analyze <coin>');
               break;
             }
-            const resolved = resolveCoin(coin);
-            if (!resolved) {
-              addLine("error", `Unknown coin: ${coin}`);
-              break;
-            }
+            ctx.current.coin = resolved;
 
-            const analyzeDays = detectTimeframe(trimmed) || 30;
+            const analyzeDays = detectTimeframe(trimmed) || ctx.current.days;
+            ctx.current.days = analyzeDays;
             addLine("system", `Fetching ${analyzeDays}D market data for ${resolved}...`);
 
             const marketRes = await fetch(`/api/market-data?coin=${resolved}&days=${analyzeDays}`);
@@ -293,20 +302,47 @@ export function Terminal() {
             break;
           }
 
-          case "backtest": {
+          case "backtest":
+          case "bt":
+          case "test":
+          case "run":
+          case "simulate": {
+            // Try to resolve coin from args, then context
             const coin = args[0];
-            if (!coin) {
-              addLine("error", 'Usage: backtest <coin> <strategy description>');
-              break;
-            }
-            const resolved = resolveCoin(coin);
+            let resolved = coin ? resolveCoin(coin) : null;
+            let strategyArgs = resolved ? args.slice(1) : args;
+
+            // "backtest it" / "backtest that" / just "backtest" - use context
             if (!resolved) {
-              addLine("error", `Unknown coin: ${coin}`);
-              break;
+              // Maybe first arg is part of strategy text, not a coin
+              const detectedInArgs = coin ? resolveCoin(coin) : null;
+              if (detectedInArgs) {
+                resolved = detectedInArgs;
+                strategyArgs = args.slice(1);
+              } else {
+                resolved = ctx.current.coin;
+                strategyArgs = args; // all args are strategy text
+              }
             }
 
-            const strategyText = args.slice(1).join(" ") || "balanced swing trading using RSI and MACD";
-            const btDays = detectTimeframe(trimmed) || 90;
+            if (!resolved) {
+              addLine("error", 'No coin specified. Usage: backtest <coin> <strategy>');
+              addLine("error", 'Or first use another command like "price bitcoin", then "backtest it"');
+              break;
+            }
+            ctx.current.coin = resolved;
+
+            // Build strategy text: use args, fall back to context, then default
+            const rawStrategy = strategyArgs
+              .filter((a) => !/^(it|that|this|the|same|again|for|me|my|please)$/i.test(a))
+              .join(" ")
+              .trim();
+            const hasRealStrategy = rawStrategy.replace(/\W/g, "").length >= 3;
+            const strategyText = (hasRealStrategy ? rawStrategy : null) || ctx.current.strategy || "balanced swing trading using RSI and MACD";
+            if (hasRealStrategy) ctx.current.strategy = strategyText;
+
+            const btDays = detectTimeframe(trimmed) || ctx.current.days;
+            ctx.current.days = btDays;
 
             addLine("system", `Fetching ${btDays}D data for ${resolved}...`);
 
@@ -408,22 +444,28 @@ export function Terminal() {
             }
 
             // ── Detect intent from natural language ──
-            const intentCoin = detectCoin(trimmed);
-            const backtestIntent = /backtest|back test|back-test|test.*strategy|run.*strategy|simulate/i.test(trimmed);
+            const intentCoin = detectCoin(trimmed) || ctx.current.coin;
+            const backtestIntent = /backtest|back test|back-test|test.*strategy|run.*strategy|simulate|test it|test that|backtest it|backtest that|run it|run that/i.test(trimmed);
             const analyzeIntent = /analy[sz]e|analysis|what.*think|outlook|forecast|predict/i.test(trimmed) && !backtestIntent;
             const priceIntent = /price|how much|what.*worth|cost|value|trading at/i.test(trimmed) && !analyzeIntent && !backtestIntent;
 
             // Route to the actual command if intent is detected
             if (backtestIntent && intentCoin) {
+              ctx.current.coin = intentCoin;
               // Extract strategy description - remove the coin name and backtest keywords
-              const strategyText = trimmed
+              const rawNlStrategy = trimmed
                 .replace(/can you |please |could you |run |do |perform /gi, "")
                 .replace(/backtest|back test|back-test|simulate|test/gi, "")
                 .replace(new RegExp(intentCoin, "gi"), "")
-                .replace(/on|for|a|the|an|my/gi, "")
-                .replace(/strategy/gi, "strategy")
+                .replace(/\b(it|that|this|the|same|again|on|for|a|an|my|me|strategy)\b/gi, "")
                 .replace(/\s+/g, " ")
-                .trim() || "balanced swing trading using RSI and MACD";
+                .trim();
+              // Only use extracted text if it's actually meaningful (3+ meaningful chars)
+              // Otherwise fall back to context strategy
+              const hasRealContent = rawNlStrategy.replace(/\W/g, "").length >= 3;
+              const strategyText = (hasRealContent ? rawNlStrategy : null) || ctx.current.strategy || "balanced swing trading using RSI and MACD";
+              // Only overwrite context if we have new real content
+              if (hasRealContent) ctx.current.strategy = strategyText;
 
               // Reuse the backtest command logic
               const nlBtDays = detectTimeframe(trimmed) || 90;
@@ -518,7 +560,8 @@ export function Terminal() {
             }
 
             if (analyzeIntent && intentCoin) {
-              const nlAnalyzeDays = detectTimeframe(trimmed) || 30;
+              ctx.current.coin = intentCoin;
+              const nlAnalyzeDays = detectTimeframe(trimmed) || ctx.current.days;
               addLine("system", `Running ${nlAnalyzeDays}D analysis on ${intentCoin}...`);
 
               const amRes = await fetch(`/api/market-data?coin=${intentCoin}&days=${nlAnalyzeDays}`);
@@ -585,6 +628,7 @@ export function Terminal() {
             }
 
             if (priceIntent && intentCoin) {
+              ctx.current.coin = intentCoin;
               addLine("system", `Fetching ${intentCoin} price...`);
               const pRes = await fetch(`/api/market-data?coin=${intentCoin}&days=1`);
               if (!pRes.ok) throw new Error("Failed to fetch");
@@ -600,10 +644,11 @@ export function Terminal() {
             }
 
             // ── Free-form AI chat (fallback) ──
-            const detectedCoin = detectCoin(trimmed);
+            const detectedCoin = detectCoin(trimmed) || ctx.current.coin;
             let coinData = null;
 
             if (detectedCoin) {
+              ctx.current.coin = detectedCoin;
               addLine("system", `Fetching ${detectedCoin} data...`);
               try {
                 const mRes = await fetch(`/api/market-data?coin=${detectedCoin}&days=30`);
@@ -653,13 +698,26 @@ export function Terminal() {
             }
 
             const chatData = await chatRes.json();
-            const responseLines = chatData.response.split("\n");
+            const aiResponse = chatData.response;
+            const responseLines = aiResponse.split("\n");
 
             addLine("output", "");
             for (const line of responseLines) {
               addLine("output", `  ${line}`);
             }
             addLine("output", "");
+
+            // Save the AI's full response as strategy context so
+            // "backtest it" uses what the AI actually suggested
+            const isStrategyRelated = /strateg|entry|exit|buy.*when|sell.*when|stop.?loss|take.?profit|position|trade.*when|rsi.*below|rsi.*above|macd.*cross|bollinger|sma.*cross/i.test(aiResponse);
+            if (isStrategyRelated) {
+              // Extract the core strategy from the AI response (first ~200 chars of actionable content)
+              ctx.current.strategy = aiResponse
+                .replace(/this is educational.*$/i, "")
+                .replace(/disclaimer.*$/i, "")
+                .trim()
+                .slice(0, 500);
+            }
           }
         }
       } catch (err) {
