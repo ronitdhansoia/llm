@@ -18,7 +18,7 @@ export function Navbar() {
               CryptoLens
             </span>
           </Link>
-          <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-2 sm:gap-5">
             <Link
               href="/"
               className="text-[11px] sm:text-xs tracking-wide text-white/40 hover:text-white transition-colors duration-300"
@@ -27,9 +27,15 @@ export function Navbar() {
             </Link>
             <Link
               href="/analyze"
-              className="text-[11px] sm:text-xs tracking-wide text-white/90 px-3 sm:px-4 py-1.5 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all duration-300"
+              className="text-[11px] sm:text-xs tracking-wide text-white/40 hover:text-white transition-colors duration-300"
             >
               Dashboard
+            </Link>
+            <Link
+              href="/terminal"
+              className="text-[11px] sm:text-xs tracking-wide text-white/90 px-3 sm:px-4 py-1.5 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all duration-300 font-mono"
+            >
+              Terminal
             </Link>
           </div>
         </div>
