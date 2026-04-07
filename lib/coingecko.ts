@@ -3,7 +3,10 @@ import type { SimplePrice, PricePoint } from "./types";
 const BASE_URL = "https://api.coingecko.com/api/v3";
 
 // In-memory cache with variable TTL
-const cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>();
+const cache = new Map<
+  string,
+  { data: unknown; timestamp: number; ttl: number }
+>();
 
 async function cachedFetch<T>(url: string, ttl = 60_000): Promise<T> {
   const now = Date.now();
@@ -12,17 +15,40 @@ async function cachedFetch<T>(url: string, ttl = 60_000): Promise<T> {
     return cached.data as T;
   }
 
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
+  // Retry with backoff for rate limiting
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      // Wait before retry: 1s, 3s
+      await new Promise((r) => setTimeout(r, attempt * 2000));
+    }
 
-  if (!res.ok) {
-    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`);
+    try {
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+      });
+
+      if (res.status === 429) {
+        // Rate limited — retry
+        lastError = new Error("Rate limited by CoinGecko. Retrying...");
+        continue;
+      }
+
+      if (!res.ok) {
+        throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      cache.set(url, { data, timestamp: now, ttl });
+      return data as T;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      // Network errors — retry
+      if (attempt < 2) continue;
+    }
   }
 
-  const data = await res.json();
-  cache.set(url, { data, timestamp: now, ttl });
-  return data as T;
+  throw lastError || new Error("Failed to fetch from CoinGecko");
 }
 
 export async function getMarketChart(
@@ -30,7 +56,6 @@ export async function getMarketChart(
   days: number
 ): Promise<{ prices: SimplePrice[]; change24h: number; lastPrice: number }> {
   const url = `${BASE_URL}/coins/${coin}/market_chart?vs_currency=usd&days=${days}`;
-  // Shorter cache for short timeframes
   const ttl = days <= 3 ? 30_000 : 60_000;
   const data = await cachedFetch<{
     prices: [number, number][];

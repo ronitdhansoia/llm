@@ -272,7 +272,7 @@ function AnalyzeContent() {
         } catch {
           // Silent fail on auto-refresh
         }
-      }, 30_000);
+      }, 60_000);
     }
 
     return () => {
@@ -455,7 +455,7 @@ function AnalyzeContent() {
               {days <= 3 && !loading && (
                 <span className="ml-auto flex items-center gap-1.5 text-[10px] text-white/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400/60 animate-pulse" />
-                  Live · 30s
+                  Live · 60s
                 </span>
               )}
             </div>

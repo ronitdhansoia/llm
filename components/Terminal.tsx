@@ -20,13 +20,18 @@ const HELP_TEXT = `Available commands:
   clear                           Clear terminal
   help                            Show this message
 
+Timeframes: add any timeframe to your command (default: 30D)
+
+  $ analyze bitcoin 7d
+  $ backtest ethereum 1y aggressive momentum
+  $ indicators solana 90d
+
 Or just ask anything in plain English:
 
   $ is bitcoin overbought right now?
-  $ what does the MACD say about ethereum?
-  $ should I DCA into solana at this price?
-  $ explain RSI divergence
-  $ compare SMA and EMA crossover strategies`;
+  $ backtest a scalping strategy on eth for 30 days
+  $ what does the MACD say about ethereum this week?
+  $ explain RSI divergence`;
 
 const COINS: Record<string, string> = {
   bitcoin: "BTC",
@@ -174,9 +179,10 @@ export function Terminal() {
               break;
             }
 
-            addLine("system", `Computing indicators for ${resolved}...`);
+            const indDays = detectTimeframe(trimmed) || 30;
+            addLine("system", `Computing indicators for ${resolved} (${indDays}D)...`);
 
-            const res = await fetch(`/api/market-data?coin=${resolved}&days=30`);
+            const res = await fetch(`/api/market-data?coin=${resolved}&days=${indDays}`);
             if (!res.ok) throw new Error("Failed to fetch data");
             const data = await res.json();
 
@@ -189,7 +195,7 @@ export function Terminal() {
             };
 
             addLine("output", "");
-            addLine("heading", `  ${resolved.toUpperCase()} - Technical Indicators (30D)`);
+            addLine("heading", `  ${resolved.toUpperCase()} - Technical Indicators (${indDays}D)`);
             addLine("output", "");
             addLine("output", `  RSI (14):        ${last(ind.rsi).toFixed(2)}`);
             addLine("output", `  SMA 20:          $${last(ind.sma20).toFixed(2)}`);
@@ -216,9 +222,10 @@ export function Terminal() {
               break;
             }
 
-            addLine("system", `Fetching market data for ${resolved}...`);
+            const analyzeDays = detectTimeframe(trimmed) || 30;
+            addLine("system", `Fetching ${analyzeDays}D market data for ${resolved}...`);
 
-            const marketRes = await fetch(`/api/market-data?coin=${resolved}&days=30`);
+            const marketRes = await fetch(`/api/market-data?coin=${resolved}&days=${analyzeDays}`);
             if (!marketRes.ok) throw new Error("Failed to fetch data");
             const data = await marketRes.json();
 
@@ -245,7 +252,7 @@ export function Terminal() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 coin: resolved,
-                timeframe: "30 days",
+                timeframe: `${analyzeDays} days`,
                 currentPrice: data.metadata.lastPrice,
                 indicators: {
                   rsiLatest: last(ind.rsi),
@@ -299,10 +306,11 @@ export function Terminal() {
             }
 
             const strategyText = args.slice(1).join(" ") || "balanced swing trading using RSI and MACD";
+            const btDays = detectTimeframe(trimmed) || 90;
 
-            addLine("system", `Fetching 90D data for ${resolved}...`);
+            addLine("system", `Fetching ${btDays}D data for ${resolved}...`);
 
-            const marketRes = await fetch(`/api/market-data?coin=${resolved}&days=90`);
+            const marketRes = await fetch(`/api/market-data?coin=${resolved}&days=${btDays}`);
             if (!marketRes.ok) throw new Error("Failed to fetch data");
             const data = await marketRes.json();
 
@@ -321,7 +329,7 @@ export function Terminal() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 coin: resolved,
-                timeframe: "90 days",
+                timeframe: `${btDays} days`,
                 currentPrice: data.metadata.lastPrice,
                 strategy: strategyText,
                 indicators: {
@@ -418,9 +426,10 @@ export function Terminal() {
                 .trim() || "balanced swing trading using RSI and MACD";
 
               // Reuse the backtest command logic
-              addLine("system", `Fetching 90D data for ${intentCoin}...`);
+              const nlBtDays = detectTimeframe(trimmed) || 90;
+              addLine("system", `Fetching ${nlBtDays}D data for ${intentCoin}...`);
 
-              const mktRes = await fetch(`/api/market-data?coin=${intentCoin}&days=90`);
+              const mktRes = await fetch(`/api/market-data?coin=${intentCoin}&days=${nlBtDays}`);
               if (!mktRes.ok) throw new Error("Failed to fetch data");
               const mktData = await mktRes.json();
 
@@ -439,7 +448,7 @@ export function Terminal() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   coin: intentCoin,
-                  timeframe: "90 days",
+                  timeframe: `${nlBtDays} days`,
                   currentPrice: mktData.metadata.lastPrice,
                   strategy: strategyText,
                   indicators: {
@@ -509,10 +518,10 @@ export function Terminal() {
             }
 
             if (analyzeIntent && intentCoin) {
-              // Redirect to the analyze command
-              addLine("system", `Running analysis on ${intentCoin}...`);
+              const nlAnalyzeDays = detectTimeframe(trimmed) || 30;
+              addLine("system", `Running ${nlAnalyzeDays}D analysis on ${intentCoin}...`);
 
-              const amRes = await fetch(`/api/market-data?coin=${intentCoin}&days=30`);
+              const amRes = await fetch(`/api/market-data?coin=${intentCoin}&days=${nlAnalyzeDays}`);
               if (!amRes.ok) throw new Error("Failed to fetch data");
               const amData = await amRes.json();
               const aInd = amData.indicators;
@@ -533,7 +542,7 @@ export function Terminal() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   coin: intentCoin,
-                  timeframe: "30 days",
+                  timeframe: `${nlAnalyzeDays} days`,
                   currentPrice: amData.metadata.lastPrice,
                   indicators: {
                     rsiLatest: aLast(aInd.rsi),
@@ -676,7 +685,6 @@ export function Terminal() {
 
   function detectCoin(text: string): string | null {
     const lower = text.toLowerCase();
-    // Check for coin names and symbols in the text
     for (const [id, symbol] of Object.entries(COINS)) {
       if (
         lower.includes(id) ||
@@ -687,6 +695,36 @@ export function Terminal() {
       }
     }
     return null;
+  }
+
+  function detectTimeframe(text: string): number {
+    const lower = text.toLowerCase();
+    // Exact day patterns
+    const dayMatch = lower.match(/(\d+)\s*d(?:ay)?s?/);
+    if (dayMatch) return Math.min(parseInt(dayMatch[1], 10), 365);
+    // Week patterns
+    const weekMatch = lower.match(/(\d+)\s*w(?:eek)?s?/);
+    if (weekMatch) return Math.min(parseInt(weekMatch[1], 10) * 7, 365);
+    // Month patterns
+    const monthMatch = lower.match(/(\d+)\s*m(?:onth)?s?/);
+    if (monthMatch) return Math.min(parseInt(monthMatch[1], 10) * 30, 365);
+    // Year patterns
+    const yearMatch = lower.match(/(\d+)\s*y(?:ear)?s?/);
+    if (yearMatch) return Math.min(parseInt(yearMatch[1], 10) * 365, 365);
+    // Named timeframes
+    if (/\b(1d|today|24h|intraday)\b/.test(lower)) return 1;
+    if (/\b(3d|3 day)\b/.test(lower)) return 3;
+    if (/\b(1w|one week|a week)\b/.test(lower)) return 7;
+    if (/\b(2w|two week)\b/.test(lower)) return 14;
+    if (/\b(1m|one month|a month)\b/.test(lower)) return 30;
+    if (/\b(3m|three month|quarter)\b/.test(lower)) return 90;
+    if (/\b(6m|six month|half year)\b/.test(lower)) return 180;
+    if (/\b(1y|one year|a year|annual)\b/.test(lower)) return 365;
+    if (/\bshort\s*term\b/.test(lower)) return 7;
+    if (/\bmedium\s*term\b/.test(lower)) return 30;
+    if (/\blong\s*term\b/.test(lower)) return 90;
+    // Default
+    return 0; // 0 means not specified
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
