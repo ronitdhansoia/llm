@@ -144,7 +144,7 @@ export function MonteCarloChart({ result }: MonteCarloChartProps) {
       </motion.div>
 
       {/* MC Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <MCMetric
           label="Median Return"
           value={`${result.medianReturn >= 0 ? "+" : ""}${result.medianReturn.toFixed(1)}%`}
@@ -182,7 +182,7 @@ export function MonteCarloChart({ result }: MonteCarloChartProps) {
         <p className="text-[10px] text-white/10 mb-3">
           Shaded area shows 5th–95th percentile range across {result.simulations} simulations
         </p>
-        <div className="h-[300px]">
+        <div className="h-[220px] sm:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={fanData}
@@ -265,7 +265,7 @@ export function MonteCarloChart({ result }: MonteCarloChartProps) {
         <p className="text-[10px] text-white/10 mb-3">
           Final return across all {result.simulations} simulated paths
         </p>
-        <div className="h-[220px]">
+        <div className="h-[180px] sm:h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={histogramData}
@@ -312,7 +312,7 @@ export function MonteCarloChart({ result }: MonteCarloChartProps) {
       </motion.div>
 
       {/* Extra stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         <MCMetric
           label="Mean Return"
           value={`${result.meanReturn >= 0 ? "+" : ""}${result.meanReturn.toFixed(1)}%`}

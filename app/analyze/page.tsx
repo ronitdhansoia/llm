@@ -301,10 +301,10 @@ function AnalyzeContent() {
   };
 
   return (
-    <main className="relative min-h-screen pb-28 bg-black">
+    <main className="relative min-h-screen pb-24 sm:pb-28 bg-black">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-20 sm:pt-24">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -314,10 +314,10 @@ function AnalyzeContent() {
         >
           <div className="flex items-baseline justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
                 Dashboard
               </h1>
-              <p className="text-white/30 mt-2 text-sm font-light">
+              <p className="text-white/30 mt-1.5 sm:mt-2 text-xs sm:text-sm font-light">
                 Select a cryptocurrency and timeframe to visualize charts and
                 get AI insights.
               </p>
@@ -380,10 +380,10 @@ function AnalyzeContent() {
         {/* Loading skeleton */}
         {loading && (
           <div className="space-y-4">
-            <div className="h-[400px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="h-[180px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
-              <div className="h-[180px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+            <div className="h-[280px] sm:h-[400px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="h-[140px] sm:h-[180px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+              <div className="h-[140px] sm:h-[180px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
             </div>
           </div>
         )}
@@ -468,7 +468,7 @@ function AnalyzeContent() {
               trades={backtestResult?.trades}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <RSIChart data={marketData} />
               <MACDChart data={marketData} />
             </div>
@@ -585,7 +585,7 @@ function AnalyzeContent() {
                         />
                       ))}
                     </div>
-                    <div className="h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+                    <div className="h-[200px] sm:h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
                     <p className="text-center text-xs text-white/20 font-light py-4">
                       Generating strategy and running backtest...
                     </p>
@@ -628,13 +628,12 @@ function AnalyzeContent() {
 
       {/* ── Fixed bottom prompt bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
-        {/* Fade gradient above bar */}
-        <div className="h-8 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+        <div className="h-6 sm:h-8 bg-gradient-to-t from-black to-transparent pointer-events-none" />
 
         <div className="bg-black/80 backdrop-blur-2xl border-t border-white/[0.04]">
-          <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
             <div
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border transition-all duration-300 ${
+              className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl border transition-all duration-300 ${
                 promptFocused
                   ? "bg-white/[0.05] border-white/[0.12] shadow-[0_0_30px_rgba(255,255,255,0.03)]"
                   : "bg-white/[0.02] border-white/[0.06]"
@@ -653,15 +652,15 @@ function AnalyzeContent() {
                     handleSubmit();
                   }
                 }}
-                placeholder="Ask anything about this coin or describe a trading strategy..."
-                className="flex-1 bg-transparent text-sm text-white/70 placeholder:text-white/20 outline-none font-light"
+                placeholder="Describe a strategy..."
+                className="flex-1 bg-transparent text-xs sm:text-sm text-white/70 placeholder:text-white/20 outline-none font-light min-w-0"
                 disabled={analyzing || !marketData}
               />
 
               {strategyInput && (
                 <button
                   onClick={() => setStrategyInput("")}
-                  className="text-white/15 hover:text-white/30 transition-colors flex-shrink-0"
+                  className="text-white/15 hover:text-white/30 transition-colors flex-shrink-0 p-1"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -670,7 +669,7 @@ function AnalyzeContent() {
               <button
                 onClick={handleSubmit}
                 disabled={analyzing || !marketData || !strategyInput.trim()}
-                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-black hover:scale-105 transition-all disabled:opacity-20 disabled:hover:scale-100 flex-shrink-0"
+                className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-white text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-20 disabled:hover:scale-100 flex-shrink-0"
               >
                 {analyzing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -680,7 +679,7 @@ function AnalyzeContent() {
               </button>
             </div>
 
-            <p className="text-center text-[10px] text-white/10 mt-1.5">
+            <p className="text-center text-[9px] sm:text-[10px] text-white/10 mt-1 sm:mt-1.5 hidden sm:block">
               Press Enter to analyze · Results are educational, not financial
               advice
             </p>

@@ -23,7 +23,7 @@ export default function BacktestPage() {
       fallback={
         <main className="relative min-h-screen bg-black">
           <Navbar />
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-20 sm:pt-24">
             <div className="h-[400px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
           </div>
         </main>
@@ -139,7 +139,7 @@ function BacktestContent() {
     <main className="relative min-h-screen pb-20 bg-black">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 pt-20 sm:pt-24">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -154,7 +154,7 @@ function BacktestContent() {
             <ArrowLeft className="w-3 h-3" />
             Back to Analyzer
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
             Backtest
           </h1>
           <p className="text-white/30 mt-2 text-sm font-light">
@@ -198,8 +198,8 @@ function BacktestContent() {
                 />
               ))}
             </div>
-            <div className="h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
-            <div className="h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+            <div className="h-[200px] sm:h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
+            <div className="h-[200px] sm:h-[280px] bg-white/[0.02] border border-white/[0.04] rounded-2xl shimmer" />
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -124,7 +124,7 @@ export function PromptBar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-56 bg-black border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl z-50"
+                  className="absolute top-full left-0 right-0 sm:right-auto mt-2 w-full sm:w-56 bg-black border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl z-50"
                 >
                   <div className="p-2 border-b border-white/[0.04]">
                     <div className="flex items-center gap-2 px-2.5 py-1.5 bg-white/[0.03] rounded-lg">
@@ -180,13 +180,13 @@ export function PromptBar() {
             onKeyDown={handleKeyDown}
             placeholder="Describe your strategy or what you want to analyze..."
             rows={2}
-            className="w-full bg-transparent text-sm text-white/80 placeholder:text-white/15 outline-none resize-none leading-relaxed font-light pr-12"
+            className="w-full bg-transparent text-xs sm:text-sm text-white/80 placeholder:text-white/15 outline-none resize-none leading-relaxed font-light pr-12"
           />
 
           {/* Submit button */}
           <button
             onClick={handleSubmit}
-            className="absolute right-4 bottom-3 w-8 h-8 flex items-center justify-center rounded-lg bg-white text-black hover:scale-105 transition-transform"
+            className="absolute right-4 bottom-3 w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl bg-white text-black hover:scale-105 active:scale-95 transition-transform"
           >
             <ArrowRight className="w-4 h-4" />
           </button>
@@ -207,7 +207,7 @@ export function PromptBar() {
               setPrompt(s);
               inputRef.current?.focus();
             }}
-            className="px-3 py-1.5 text-[11px] text-white/20 border border-white/[0.04] rounded-full hover:border-white/[0.1] hover:text-white/35 transition-all duration-300"
+            className="px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-[11px] text-white/20 border border-white/[0.04] rounded-full hover:border-white/[0.1] hover:text-white/35 transition-all duration-300"
           >
             {s}
           </button>

@@ -122,9 +122,11 @@ export function PriceChart({
     seriesRefs.current.clear();
 
     const container = containerRef.current;
+    const isMobile = container.clientWidth < 640;
+    const chartHeight = isMobile ? 280 : 420;
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: 420,
+      height: chartHeight,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "rgba(255, 255, 255, 0.25)",
@@ -420,8 +422,10 @@ export function PriceChart({
 
     const handleResize = () => {
       if (chartRef.current && containerRef.current) {
+        const w = containerRef.current.clientWidth;
         chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
+          width: w,
+          height: w < 640 ? 280 : 420,
         });
       }
     };
@@ -472,9 +476,10 @@ export function RSIChart({ data }: RSIChartProps) {
     if (data.indicators.rsi.length === 0) return;
 
     const container = containerRef.current;
+    const subHeight = container.clientWidth < 640 ? 140 : 180;
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: 180,
+      height: subHeight,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "rgba(255, 255, 255, 0.2)",
@@ -636,9 +641,10 @@ export function MACDChart({ data }: MACDChartProps) {
     if (data.indicators.macd.macd.length === 0) return;
 
     const container = containerRef.current;
+    const subHeight = container.clientWidth < 640 ? 140 : 180;
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: 180,
+      height: subHeight,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: "rgba(255, 255, 255, 0.2)",

@@ -96,16 +96,16 @@ export function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_40%,_black_100%)] z-[2]" />
 
       {/* Content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
         {/* Main headline */}
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: [0.25, 0.1, 0, 1] }}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[0.9]"
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-8xl font-bold tracking-tight leading-[0.9]"
         >
           <span className="block text-white">Decode the</span>
-          <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">
+          <span className="block mt-1 sm:mt-2 text-transparent bg-clip-text bg-gradient-to-r from-white via-white/80 to-white/40">
             crypto market.
           </span>
         </motion.h1>
@@ -115,7 +115,7 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.9 }}
-          className="mt-6 mb-10 text-sm text-white/25 max-w-md mx-auto leading-relaxed font-light"
+          className="mt-4 sm:mt-6 mb-8 sm:mb-10 text-xs sm:text-sm text-white/25 max-w-md mx-auto leading-relaxed font-light"
         >
           Pick a coin. Describe your strategy. Get AI insights.
         </motion.p>
@@ -128,14 +128,14 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2, duration: 1 }}
-          className="mt-16 text-[10px] tracking-wider uppercase text-white/15"
+          className="mt-10 sm:mt-16 text-[9px] sm:text-[10px] tracking-wider uppercase text-white/15"
         >
           Educational tool — not financial advice
         </motion.p>
       </div>
 
       {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-20 sm:h-32 bg-gradient-to-t from-black to-transparent z-10" />
     </section>
   );
 }

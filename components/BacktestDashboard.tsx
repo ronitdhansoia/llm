@@ -209,7 +209,7 @@ export function BacktestDashboard({
       </motion.div>
 
       {/* Metrics grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         <MetricCard
           label="Total Return"
           value={`${metrics.totalReturn >= 0 ? "+" : ""}${metrics.totalReturn.toFixed(1)}%`}
@@ -262,7 +262,7 @@ export function BacktestDashboard({
         <p className="text-[10px] text-white/10 mb-3">
           Green dots = entries, Red dots = exits
         </p>
-        <div className="h-[280px]">
+        <div className="h-[220px] sm:h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={tradeChartData}
@@ -323,7 +323,7 @@ export function BacktestDashboard({
       </motion.div>
 
       {/* Additional metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <MetricCard
           label="Avg Win"
           value={`+${metrics.avgWin.toFixed(1)}%`}
@@ -355,34 +355,34 @@ export function BacktestDashboard({
         variants={item}
         className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-white/[0.04]">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/[0.04]">
           <p className="text-[10px] text-white/25 uppercase tracking-widest">
             Trade Log
           </p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+        <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table className="w-full text-[10px] sm:text-xs min-w-[500px]">
             <thead>
               <tr className="border-b border-white/[0.04]">
-                <th className="px-4 py-3 text-left text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   #
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Entry
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Exit
                 </th>
-                <th className="px-4 py-3 text-right text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Entry Price
                 </th>
-                <th className="px-4 py-3 text-right text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Exit Price
                 </th>
-                <th className="px-4 py-3 text-right text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Return
                 </th>
-                <th className="px-4 py-3 text-left text-[10px] text-white/20 uppercase tracking-wider font-medium">
+                <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[9px] sm:text-[10px] text-white/20 uppercase tracking-wider font-medium">
                   Reason
                 </th>
               </tr>
@@ -393,20 +393,20 @@ export function BacktestDashboard({
                   key={i}
                   className="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors"
                 >
-                  <td className="px-4 py-2.5 text-white/30">{i + 1}</td>
-                  <td className="px-4 py-2.5 text-white/40">
+                  <td className="px-2 sm:px-4 py-2 text-white/30">{i + 1}</td>
+                  <td className="px-2 sm:px-4 py-2 text-white/40">
                     {formatDate(trade.entryTime)}
                   </td>
-                  <td className="px-4 py-2.5 text-white/40">
+                  <td className="px-2 sm:px-4 py-2 text-white/40">
                     {formatDate(trade.exitTime)}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-white/50 font-mono">
+                  <td className="px-2 sm:px-4 py-2 text-right text-white/50 font-mono">
                     $
                     {trade.entryPrice.toLocaleString(undefined, {
                       maximumFractionDigits: 2,
                     })}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-white/50 font-mono">
+                  <td className="px-2 sm:px-4 py-2 text-right text-white/50 font-mono">
                     $
                     {trade.exitPrice.toLocaleString(undefined, {
                       maximumFractionDigits: 2,
@@ -422,7 +422,7 @@ export function BacktestDashboard({
                     {trade.returnPercent >= 0 ? "+" : ""}
                     {trade.returnPercent.toFixed(2)}%
                   </td>
-                  <td className="px-4 py-2.5 text-white/25">{trade.exitReason}</td>
+                  <td className="px-2 sm:px-4 py-2 text-white/25">{trade.exitReason}</td>
                 </tr>
               ))}
               {trades.length === 0 && (
