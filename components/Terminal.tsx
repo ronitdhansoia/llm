@@ -72,7 +72,19 @@ export function Terminal() {
     coin: string | null;
     strategy: string | null;
     days: number;
-  }>({ coin: null, strategy: null, days: 30 });
+    lastAnalysis: string | null;
+    lastBacktestSummary: string | null;
+    lastAiResponse: string | null;
+    conversationHistory: { role: "user" | "assistant"; content: string }[];
+  }>({
+    coin: null,
+    strategy: null,
+    days: 30,
+    lastAnalysis: null,
+    lastBacktestSummary: null,
+    lastAiResponse: null,
+    conversationHistory: [],
+  });
 
   const nextId = () => ++idRef.current;
 
@@ -129,6 +141,11 @@ export function Terminal() {
           case "clear": {
             setLines([]);
             addLines("system", WELCOME);
+            ctx.current = {
+              coin: null, strategy: null, days: 30,
+              lastAnalysis: null, lastBacktestSummary: null,
+              lastAiResponse: null, conversationHistory: [],
+            };
             break;
           }
 
@@ -299,6 +316,13 @@ export function Terminal() {
             addLine("output", "");
             addLine("system", `  ${analysis.disclaimer}`);
             addLine("output", "");
+
+            // Save to context
+            ctx.current.lastAnalysis = `${analysis.trend} (${analysis.confidence}) - ${analysis.trendExplanation} ${analysis.signalSummary}`;
+            ctx.current.conversationHistory.push(
+              { role: "user", content: `analyze ${resolved}` },
+              { role: "assistant", content: `Analysis for ${resolved}: ${analysis.trend} trend, ${analysis.confidence} confidence. ${analysis.trendExplanation} ${analysis.momentum} Support: $${analysis.keyLevels.support}, Resistance: $${analysis.keyLevels.resistance}. ${analysis.signalSummary}` }
+            );
             break;
           }
 
@@ -432,6 +456,13 @@ export function Terminal() {
 
             addLine("system", "  Educational only - not financial advice.");
             addLine("output", "");
+
+            // Save backtest to context
+            ctx.current.lastBacktestSummary = `${strategy.name}: ${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn.toFixed(1)}% return, ${m.winRate.toFixed(0)}% win rate, ${m.totalTrades} trades, -${m.maxDrawdown.toFixed(1)}% max drawdown`;
+            ctx.current.conversationHistory.push(
+              { role: "user", content: `backtest ${resolved} ${strategyText}` },
+              { role: "assistant", content: `Backtest of "${strategy.name}" on ${resolved}: ${m.totalReturn >= 0 ? "+" : ""}${m.totalReturn.toFixed(1)}% total return, ${m.winRate.toFixed(0)}% win rate, ${m.totalTrades} trades, Sharpe ${m.sharpeRatio.toFixed(2)}, max drawdown -${m.maxDrawdown.toFixed(1)}%` }
+            );
             break;
           }
 
@@ -556,6 +587,13 @@ export function Terminal() {
 
               addLine("system", "  Educational only - not financial advice.");
               addLine("output", "");
+
+              // Save to context
+              ctx.current.lastBacktestSummary = `${strat.name}: ${bm.totalReturn >= 0 ? "+" : ""}${bm.totalReturn.toFixed(1)}% return, ${bm.winRate.toFixed(0)}% win rate, ${bm.totalTrades} trades`;
+              ctx.current.conversationHistory.push(
+                { role: "user", content: cmd.trim() },
+                { role: "assistant", content: `Backtested "${strat.name}" on ${intentCoin}: ${bm.totalReturn >= 0 ? "+" : ""}${bm.totalReturn.toFixed(1)}% return, ${bm.winRate.toFixed(0)}% win rate, ${bm.totalTrades} trades` }
+              );
               break;
             }
 
@@ -624,6 +662,13 @@ export function Terminal() {
               addLine("output", "");
               addLine("system", `  ${aResult.disclaimer}`);
               addLine("output", "");
+
+              // Save to context
+              ctx.current.lastAnalysis = `${aResult.trend} (${aResult.confidence}) - ${aResult.trendExplanation} ${aResult.signalSummary}`;
+              ctx.current.conversationHistory.push(
+                { role: "user", content: cmd.trim() },
+                { role: "assistant", content: `${intentCoin} analysis: ${aResult.trend}, ${aResult.confidence} confidence. ${aResult.signalSummary}` }
+              );
               break;
             }
 
@@ -683,12 +728,25 @@ export function Terminal() {
 
             addLine("system", "Thinking...");
 
+            // Add user message to conversation history
+            ctx.current.conversationHistory.push({
+              role: "user",
+              content: cmd.trim(),
+            });
+
             const chatRes = await fetch("/api/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 message: cmd.trim(),
                 coinData,
+                conversationHistory: ctx.current.conversationHistory.slice(-6),
+                context: {
+                  coin: ctx.current.coin,
+                  strategy: ctx.current.strategy,
+                  lastAnalysis: ctx.current.lastAnalysis,
+                  lastBacktestSummary: ctx.current.lastBacktestSummary,
+                },
               }),
             });
 
@@ -707,11 +765,22 @@ export function Terminal() {
             }
             addLine("output", "");
 
-            // Save the AI's full response as strategy context so
-            // "backtest it" uses what the AI actually suggested
-            const isStrategyRelated = /strateg|entry|exit|buy.*when|sell.*when|stop.?loss|take.?profit|position|trade.*when|rsi.*below|rsi.*above|macd.*cross|bollinger|sma.*cross/i.test(aiResponse);
+            // Save AI response to conversation history
+            ctx.current.conversationHistory.push({
+              role: "assistant",
+              content: aiResponse,
+            });
+            // Keep history bounded
+            if (ctx.current.conversationHistory.length > 20) {
+              ctx.current.conversationHistory =
+                ctx.current.conversationHistory.slice(-12);
+            }
+
+            ctx.current.lastAiResponse = aiResponse;
+
+            // Save strategy context if the AI suggested one
+            const isStrategyRelated = /strateg|entry|exit|buy.*when|sell.*when|stop.?loss|take.?profit|position|trade.*when|rsi.*below|rsi.*above|macd.*cross|bollinger|sma.*cross|mean.?reversion|scalp|swing|momentum|dca|dollar.?cost/i.test(aiResponse);
             if (isStrategyRelated) {
-              // Extract the core strategy from the AI response (first ~200 chars of actionable content)
               ctx.current.strategy = aiResponse
                 .replace(/this is educational.*$/i, "")
                 .replace(/disclaimer.*$/i, "")

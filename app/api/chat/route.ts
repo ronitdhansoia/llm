@@ -5,13 +5,14 @@ const anthropic = new Anthropic();
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, coinData } = await request.json();
+    const { message, coinData, conversationHistory, context } =
+      await request.json();
 
     if (!message) {
       return Response.json({ error: "Missing message" }, { status: 400 });
     }
 
-    const systemPrompt = `You are CryptoLens, a crypto technical analyst assistant running inside a terminal CLI. You answer questions about cryptocurrency markets, technical analysis, trading strategies, and indicators.
+    let systemPrompt = `You are CryptoLens, a crypto technical analyst assistant running inside a terminal CLI. You answer questions about cryptocurrency markets, technical analysis, trading strategies, and indicators.
 
 Rules:
 - Keep responses concise - this is a terminal, not an essay. 2-4 short paragraphs max.
@@ -19,8 +20,34 @@ Rules:
 - When referencing numbers, be specific.
 - Always end with a one-line disclaimer: "This is educational only, not financial advice."
 - If the user asks about a specific coin and indicator data is provided, reference the actual values.
-- If no coin data is provided, give general educational answers.`;
+- If no coin data is provided, give general educational answers.
+- If the user says "why?", "explain more", "go deeper", or asks a follow-up, refer to the conversation history.
+- If the user says "what about X" where X is a different coin, compare it to the previous coin if data is available.
+- When suggesting strategies, be specific with entry/exit rules, indicator thresholds, and risk management parameters so they can be backtested.`;
 
+    // Add context about what the user has been doing
+    if (context) {
+      const parts: string[] = [];
+      if (context.coin)
+        parts.push(`The user is currently looking at ${context.coin}.`);
+      if (context.strategy)
+        parts.push(
+          `Their current strategy idea: "${context.strategy.slice(0, 300)}"`
+        );
+      if (context.lastAnalysis)
+        parts.push(
+          `Recent analysis result: ${context.lastAnalysis.slice(0, 300)}`
+        );
+      if (context.lastBacktestSummary)
+        parts.push(
+          `Recent backtest: ${context.lastBacktestSummary.slice(0, 200)}`
+        );
+      if (parts.length > 0) {
+        systemPrompt += `\n\nSession context:\n${parts.join("\n")}`;
+      }
+    }
+
+    // Build user message with coin data
     let userMessage = message;
 
     if (coinData) {
@@ -38,11 +65,25 @@ Bollinger Upper: $${coinData.bbUpper}
 Bollinger Lower: $${coinData.bbLower}`;
     }
 
+    // Build messages array with conversation history
+    const messages: { role: "user" | "assistant"; content: string }[] = [];
+
+    // Include last 6 turns of conversation for context
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      const recent = conversationHistory.slice(-6);
+      for (const msg of recent) {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    }
+
+    // Add current message
+    messages.push({ role: "user", content: userMessage });
+
     const result = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 512,
+      max_tokens: 600,
       system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      messages,
     });
 
     const textBlock = result.content.find((b) => b.type === "text");
